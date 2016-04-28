@@ -5,22 +5,25 @@
 # https://docs.puppetlabs.com/guides/techniques.html#how-can-i-ensure-a-group-exists-before-creating-a-user
 # https://docs.puppetlabs.com/references/latest/type.html#package-attribute-install_options
 # http://www.andrejkoelewijn.com/blog/2012/02/28/oracle-xe-on-ubuntu-using-vagrant-and-puppet
-class oracle::xe::server {
-  ## Hiera lookups
-  $http_port    = hiera('oracle::xe::server::http_port')
-  $listner_port = hiera('oracle::xe::server::listner_port')
-  $password     = hiera('oracle::xe::server::password')
-  $dbenable     = hiera('oracle::xe::server::dbenable')
-  $rpm_source   = hiera('oracle::xe::server::rpm_source')
+# https://github.com/ismaild/vagrant-centos-oracle/blob/master/oracle/xe.rsp
+# https://docs.puppet.com/hiera/3.1/puppet.html#automatic-parameter-lookup
+class oracle::xe::server (
+  $http_port    = "8080",
+  $listner_port = "1521",
+  $password     = "manager",
+  $dbenable     = "y",
+  $install_root = "/u01/app/oracle",
+  $rpm_source   = "/opt/software/Oracle/Database/oracle-xe-11.2.0-1.0.x86_64.rpm"
+  )  {
 
-  package { 'oracle-xe':
-    ensure    => installed,
-    provider  => rpm,
-    source    => $rpm_source,
-    require   => [Package["libaio"],Package["bc"],Package["flex"]],
-  }
+# Moved to hiera
+#  package { "oracle-xe":
+#    ensure    => installed,
+#    provider  => rpm,
+#    source    => $rpm_source,
+#    require   => [Package["libaio"],Package["bc"],Package["flex"]],
+#  }
 
-  # https://github.com/ismaild/vagrant-centos-oracle/blob/master/oracle/xe.rsp
   $xe_responses = "
 ORACLE_LISTENER_PORT=$http_port
 ORACLE_HTTP_PORT=$listner_port
@@ -30,34 +33,34 @@ ORACLE_DBENABLE=$dbenable
   "
   
   file { "response-file":
-    path    =>  "/u01/app/oracle/xe.rsp.properties",
-    content =>  "$xe_responses",
-    require   => File["/u01/app/oracle"],
+    path    => "${install_root}/xe.rsp.properties",
+    content => $xe_responses,
+    require => File[$install_root],
   }
   file { "sql-post-file":
-    path  => '/u01/app/oracle/configure.sql',
-    owner => 'oracle',
-    group => 'dba',
-    mode  => '0755',
-    source => 'puppet:///modules/oracle/configure.sql',
-    require   => [Package["oracle-xe"],File["response-file"]],
+    path    => "${install_root}/configure.sql",
+    owner   => oracle,
+    group   => dba,
+    mode    => '0755',
+    source  => 'puppet:///modules/oracle/configure.sql',
+    require => [Package["oracle-xe"],File["response-file"]],
   }
   
   exec { "create-database":
-    command   => "/etc/init.d/oracle-xe configure responseFile=/u01/app/oracle/xe.rsp.properties",
+    command   => "/etc/init.d/oracle-xe configure responseFile=${install_root}/xe.rsp.properties",
     require   => [Package["oracle-xe"],File["response-file"]],
     user      => root,
     timeout   => 3000,
     logoutput => true,
-    creates   => '/u01/app/oracle/oradata/XE/system.dbf',
+    creates   => "${install_root}/oradata/XE/system.dbf",
    }
    
   exec { "post-db-sql":
-    command     => "/u01/app/oracle/product/11.2.0/xe/bin/sqlplus system/manager < /u01/app/oracle/configure.sql",
-    cwd         => "/u01/app/oracle/product/11.2.0/xe/bin",
+    command     => "${install_root}/product/11.2.0/xe/bin/sqlplus system/${password} < ${install_root}/configure.sql",
+    cwd         => "${install_root}/product/11.2.0/xe/bin",
     require     => [Exec["create-database"],File["sql-post-file"]],
     environment => [
-                  "ORACLE_HOME=/u01/app/oracle/product/11.2.0/xe",
+                  "ORACLE_HOME=${install_root}/product/11.2.0/xe",
                   "ORACLE_SID=XE",
                   "NLS_LANG=AMERICAN_AMERICA.AL32UTF8",
                   "DM_HOME=${documentum}/product/${version}"
