@@ -24,14 +24,15 @@ class oracle::xe::server (
 #    require   => [Package["libaio"],Package["bc"],Package["flex"]],
 #  }
 
+    # TODO more to template file
   $xe_responses = "
-ORACLE_LISTENER_PORT=$http_port
-ORACLE_HTTP_PORT=$listner_port
-ORACLE_PASSWORD=$password
+ORACLE_LISTENER_PORT=${http_port}
+ORACLE_HTTP_PORT=${listner_port}
+ORACLE_PASSWORD=${password}
 ORACLE_CONFIRM_PASSWORD=$password
-ORACLE_DBENABLE=$dbenable
+ORACLE_DBENABLE=${dbenable}
   "
-  
+
   file { "response-file":
     path    => "${install_root}/xe.rsp.properties",
     content => $xe_responses,
@@ -43,9 +44,9 @@ ORACLE_DBENABLE=$dbenable
     group   => dba,
     mode    => '0755',
     source  => 'puppet:///modules/oracle/configure.sql',
-    require => [Package["oracle-xe"],File["response-file"]],
+    require => File[$install_root],
   }
-  
+
   exec { "create-database":
     command   => "/etc/init.d/oracle-xe configure responseFile=${install_root}/xe.rsp.properties",
     require   => [Package["oracle-xe"],File["response-file"]],
@@ -54,7 +55,7 @@ ORACLE_DBENABLE=$dbenable
     logoutput => true,
     creates   => "${install_root}/oradata/XE/system.dbf",
    }
-   
+
   exec { "post-db-sql":
     command     => "${install_root}/product/11.2.0/xe/bin/sqlplus system/${password} < ${install_root}/configure.sql",
     cwd         => "${install_root}/product/11.2.0/xe/bin",
@@ -63,11 +64,9 @@ ORACLE_DBENABLE=$dbenable
                   "ORACLE_HOME=${install_root}/product/11.2.0/xe",
                   "ORACLE_SID=XE",
                   "NLS_LANG=AMERICAN_AMERICA.AL32UTF8",
-                  "DM_HOME=${documentum}/product/${version}"
                   ],
     user        => root,
     logoutput   => true,
     subscribe   => File["sql-post-file"],
     refreshonly => true,
    }
-}
