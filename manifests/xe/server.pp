@@ -70,4 +70,6 @@ ORACLE_DBENABLE=${dbenable}
     subscribe   => File["sql-post-file"],
     refreshonly => true,
    }
+# This was missing. force change
 }
+# woo hoo
