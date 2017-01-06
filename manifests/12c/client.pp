@@ -36,7 +36,7 @@ class oracle::12c::client() {
   }
 
   exec { "clientInstall":
-    command     => "${installer}/client/runInstaller -silent -responseFile /home/oracle/sig/client/client_install.rsp",
+    command     => "${installer}/client/runInstaller -silent -waitforcompletion -responseFile /home/oracle/sig/client/client_install.rsp",
     cwd         => $installer,
     require     => [File["client-response"],
                     Group["oinstall"],
@@ -53,8 +53,8 @@ class oracle::12c::client() {
   # template(<FILE REFERENCE>, [<ADDITIONAL FILES>, ...])
    file { 'tnsnames':
      ensure    => file,
-     path      => "$oracle_home/network/admin/tnsnames.ora",
-     require     => [File["client-response"],
+     path      => "${oracle_home}/network/admin/tnsnames.ora",
+     require     => [Exec["clientInstall"],
                      User["oracle"]],
      owner     => oracle,
      group     => oinstall,
