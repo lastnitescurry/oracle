@@ -5,6 +5,7 @@ class oracle::12c::client() {
   $oracle_home    ='/u01/app/oracle/product/12.1/client'
   $oracle_base    ='/u01/app/oracle'
   $installer      ='/home/oracle/sig/client'
+  $media_home     ='/opt/media'
   $dbhostname     ='db.local'
   $dbport         ='1521'
   $servicename    ='orcl.localdomain'
@@ -26,8 +27,16 @@ class oracle::12c::client() {
    content   => template('oracle/client_install.rsp.erb'),
  }
 
+ file { 'oraInst':
+   ensure    => file,
+   path      => '/etc/oraInst.loc',
+   owner     => oracle,
+   group     => oinstall,
+   content   => template('oracle/oraInst.loc.erb'),
+ }
+
   exec { "unzipClient":
-    command   => "/usr/bin/unzip /opt/media/3rdParty/oracle/linuxamd64_12102_client.zip",
+    command   => "/usr/bin/unzip ${media_home}/3rdParty/oracle/linuxamd64_12102_client.zip",
     cwd       => $installer,
     creates   => "${installer}/client/runInstaller",
     user      => oracle,
@@ -36,13 +45,14 @@ class oracle::12c::client() {
   }
 
   exec { "clientInstall":
-    command     => "${installer}/client/runInstaller -silent -waitforcompletion -responseFile /home/oracle/sig/client/client_install.rsp",
+    command     => "${installer}/client/runInstaller -silent -waitforcompletion -ignoreSysPrereqs -ignorePrereq -responseFile /home/oracle/sig/client/client_install.rsp",
     cwd         => $installer,
     require     => [File["client-response"],
+                    File["oraInst"],
                     Group["oinstall"],
                     User["oracle"]],
     environment => ["HOME=/home/oracle",
-                    "ORACLE_HOME=/u01/app/oracle/product/11.2.0",
+                    "ORACLE_HOME=${oracle_base}/product/12.1",
                     ],
     creates     => "$oracle_home/root.sh",
     user        => oracle,
