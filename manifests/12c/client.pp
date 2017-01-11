@@ -6,7 +6,7 @@ class oracle::12c::client() {
   $oracle_base    ='/u01/app/oracle'
   $installer      ='/home/oracle/sig/client'
   $media_home     ='/opt/media'
-  $dbhostname     ='db.local'
+  $dbhostname     ='ol7.localdomain'
   $dbport         ='1521'
   $servicename    ='orcl.localdomain'
   $sid            ='orcl'
