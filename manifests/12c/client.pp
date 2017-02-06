@@ -1,16 +1,17 @@
 # == Class: oracle
 #
-class oracle::12c::client() {
+class oracle::12c::client(
 
-  $oracle_home
-  $oracle_base
-  $installer_location
-  $source_location
-  $dbhostname
-  $dbport
-  $servicename
-  $sid
+  $oracle_home,
+  $oracle_base,
+  $installer_location,
+  $source_location,
+  $dbhostname,
+  $dbport,
+  $servicename,
+  $sid,
 
+){
 # template(<FILE REFERENCE>, [<ADDITIONAL FILES>, ...])
  file { 'client-response':
    ensure    => file,
@@ -30,7 +31,7 @@ class oracle::12c::client() {
 
   exec { "unzipClient":
     command   => "/usr/bin/unzip ${source_location}/3rdParty/oracle/linuxamd64_12102_client.zip",
-    cwd       => $installer,
+    cwd       => $installer_location,
     creates   => "${installer_location}/client/runInstaller",
     user      => oracle,
     group     => dba,
@@ -39,7 +40,7 @@ class oracle::12c::client() {
 
   exec { "clientInstall":
     command     => "${installer_location}/client/runInstaller -silent -waitforcompletion -ignoreSysPrereqs -ignorePrereq -responseFile ${installer_location}/client_install.rsp",
-    cwd         => $installer,
+    cwd         => $installer_location,
     require     => [File["client-response"],
                     File["oraInst"],
                     Group["oinstall"],
